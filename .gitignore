@@ -1,0 +1,5 @@
+.vscode/
+app/client
+app/server
+app/server.dSYM/
+app/client.dSYM/
