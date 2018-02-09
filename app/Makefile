@@ -1,14 +1,16 @@
 app_dir     := $(shell pwd)
 lib_dir     := $(app_dir)/../lib
+inc_dir     := $(app_dir)/../inc
+src_dir     := $(app_dir)/../src
 
-lib_src     := _endpoint.c _logging.c
-client_src  := $(addprefix $(lib_dir)/, $(lib_src))
+src         := _endpoint.c _logging.c
+client_src  := $(addprefix $(src_dir)/, $(src))
 client_src  += client.c
 
-server_src  := $(addprefix $(lib_dir)/, $(lib_src))
+server_src  := $(addprefix $(src_dir)/, $(src))
 server_src  += server.c
 
-cflags      := -g -std=c99 -Wall -I $(lib_dir) -Wno-implicit-function-declaration 
+cflags      := -g -std=c99 -Wall -I$(inc_dir) -L$(lib_dir) -lalg -Wno-implicit-function-declaration 
 targets     := server client
 
 all: $(targets)
@@ -20,6 +22,6 @@ server : $(server_src)
 	gcc $^ -o $@ $(cflags)
 
 clean:
-	rm -f $(targets) *.o
+	rm -fr $(targets) *.o *.dSYM 
 
 .PHONY :clean

@@ -1,1 +1,0 @@
-typedef (*msgcallback) (void *);

@@ -17,7 +17,7 @@ typedef struct _Entity {
     Vtype _vtype;
 }Entity;
 
-typedef int (*ecompare)(Entity* e1, Entity* e2);
+typedef int (*Ecmp)(Entity* e1, Entity* e2);
 extern int base_compare (Entity* e1, Entity* e2);
 
 extern Entity i2e(int);
