@@ -1,6 +1,6 @@
 #ifndef __RB_TREE_H__
 #define __RB_TREE_H__
-
+#include <stdlib.h>
 #include "_entity.h"
 
 #define RED 0
@@ -20,11 +20,11 @@ typedef struct _RBTree {
    
    RBTreeNode* root;
    size_t    size;
-   ecompare compare;
+   Ecmp compare;
    
 }RBTree;
 
-extern int init_rbtree(RBTree* pt, ecompare func);
+extern int init_rbtree(RBTree* pt, Ecmp func);
 
 extern RBTreeNode* create_rbnode( Entity e);
 
@@ -40,7 +40,7 @@ extern int left_rotate(RBTree* prb, RBTreeNode* px);
 
 extern int right_rotate(RBTree* prb, RBTreeNode* px);
 
-extern RBTreeNode* rb_search(RBTree* prb, RBTreeNode* pt, Entity e, Entity** entity);
+extern RBTreeNode* rb_search(RBTree* prb, RBTreeNode* pt, Entity e, Ecmp filter, Entity** entity);
 
 extern int rb_insert_fixup(RBTree* prb, RBTreeNode* pz);
 
@@ -50,6 +50,6 @@ extern int rb_delete_fixup(RBTree* prb, RBTreeNode* px, RBTreeNode* px_parent, i
 
 extern RBTreeNode* rb_remove(RBTree* prb, RBTreeNode* pz);
 
-extern int rb_delete(RBTree* prb, Entity e, Entity *entity);
+extern int rb_delete(RBTree* prb, Entity e, Ecmp filter, Entity *entity);
 
 #endif

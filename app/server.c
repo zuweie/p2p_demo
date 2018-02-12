@@ -1,17 +1,40 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/socket.h>
+#include "_rb_tree.h"
 #include "_logging.h"
 #include "_endpoint.h"
+#include "cJSON.h"
+#include "Const_str.h"
+#include "_msg.h"
+#include "_msghandler.h"
+#include "_peer_manager.h"
 
 #define RECV_BUFFSIZE 1024
 
-void udp_receive_loop(int listen_socket) {
+static RBTree g_msg_handler_mapping;
+static int process_udp (Endpoint* endpoint, const char * buf) 
+{
+	cJSON* root = cJSON_Parse(buf);
+	if (!root) return -1;
+	cJSON* msg_id = cJSON_GetObjectItem(root, MSG_ID);
+	int msg = msg_id->valueint;
+
+	Handler handler = find_handler(&g_msg_handler_mapping, msg);
+	if (handler) {
+		handler(endpoint, root);
+	}
+	cJSON_Delete(root);
+}
+
+static void udp_receive_loop(int listen_socket) {
 	Endpoint peer;
 	socklen_t addrlen;
-	char buf[RECV_BUFFSIZE];
 	int rd_size;
+	char buf[RECV_BUFFSIZE];
+
 	for(;;) {
+
 		addrlen = sizeof(peer);
 		memset(&peer, 0, addrlen);
 		memset(buf, 0, RECV_BUFFSIZE);
@@ -24,8 +47,41 @@ void udp_receive_loop(int listen_socket) {
 		}else if (rd_size == 0) {
 			continue;
 		}
-		log_info("RECV msg : %s from %s ", buf, ep_tostring(&peer));
+		process_udp(&peer, buf);
 	}
+}
+static int on_beating (Endpoint* from, void * params) 
+{	
+	cJSON* root = (cJSON*)params;
+	cJSON* client = cJSON_GetObjectItem(root, CLIENT_ID);
+	
+	update_peer(client->valuestring, from);
+	// insert or update the client
+
+}
+
+static int peer_list (Endpoint* from, void * params) 
+{
+	// 获取所有的 peer
+	int peer_size = peer_size();
+	int i;
+	//Peer *peer[peer_isze];
+	Peer** peer = (Peer**)malloc(peer_size * sizeof(Peer*));
+	all_peer(peer);
+
+	cJSON * array = cJSON_CreateArray();
+	for (i=0; i<peer_size; ++i) {
+		cJSON * jpeer = cJSON_CreateObject();
+		cJSON_AddStringToObject(jpeer, CLIENT_ID, *peer[i]->id);
+		cJSON_AddItemToArray(jpeer);
+	}
+	
+	// 
+}
+
+static int send_udp_msg(Endpoint* to, const char* msg) 
+{
+	
 }
 
 int main(int argc, char** argv) 
@@ -35,6 +91,16 @@ int main(int argc, char** argv)
 	const char * host = "0.0.0.0";
 	Endpoint server;
 
+	/* regist msg handler */
+	init_mhmap(&g_msg_handler_mapping);
+	add_handler(&g_msg_handler_mapping, EMSG_BEATING, &on_beating);
+	add_handler(&g_msg_handler_mapping, EMSG_PEERLIST, &peer_list);
+	/* regist msg handler */
+
+	/* init peer list */
+	init_peerlist();
+
+	/* init the socktet */
 	ep_frompair(&server, host, port);
 	int socketfd = socket(AF_INET, SOCK_DGRAM,0);
 	if (socketfd == -1 ) {
@@ -47,6 +113,7 @@ int main(int argc, char** argv)
 		perror("bind");
 		exit(EXIT_FAILURE);
 	}
+	printf("server listening on port %d ...\n", port);
 
 	// 接受信息。
 	udp_receive_loop(socketfd);

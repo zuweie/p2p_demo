@@ -31,7 +31,7 @@
 #include <limits.h>
 #include <ctype.h>
 #include "cJSON.h"
-
+#include "_logging.h"
 static const char *ep;
 
 const char *cJSON_GetErrorPtr(void) {return ep;}
@@ -95,6 +95,7 @@ void cJSON_Delete(cJSON *c)
 /* Parse the input text to generate a number, and populate the result into item. */
 static const char *parse_number(cJSON *item,const char *num)
 {
+	log_info("parse_number\n");
 	double n=0,sign=1,scale=0;int subscale=0,signsubscale=1;
 
 	if (*num=='-') sign=-1,num++;	/* Has sign? */
@@ -191,11 +192,11 @@ static unsigned parse_hex4(const char *str)
 static const unsigned char firstByteMark[7] = { 0x00, 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC };
 static const char *parse_string(cJSON *item,const char *str)
 {
+
 	const char *ptr=str+1;char *ptr2;char *out;int len=0;unsigned uc,uc2;
 	if (*str!='\"') {ep=str;return 0;}	/* not a string! */
 	
 	while (*ptr!='\"' && *ptr && ++len) if (*ptr++ == '\\') ptr++;	/* Skip escaped quotes. */
-	
 	out=(char*)cJSON_malloc(len+1);	/* This is how long we need for the string, roughly. */
 	if (!out) return 0;
 	
@@ -322,11 +323,15 @@ static const char *skip(const char *in) {while (in && *in && (unsigned char)*in<
 /* Parse an object - create a new root, and populate. */
 cJSON *cJSON_ParseWithOpts(const char *value,const char **return_parse_end,int require_null_terminated)
 {
+	log_info("cJSON_ParseWithOpts1\n");
 	const char *end=0;
+	log_info("cJSON_ParseWithOpts2\n");
 	cJSON *c=cJSON_New_Item();
+	log_info("cJSON_ParseWithOpts3\n");
 	ep=0;
 	if (!c) return 0;       /* memory fail */
 
+	log_info("cJSON_ParseWithOpts4\n");
 	end=parse_value(c,skip(value));
 	if (!end)	{cJSON_Delete(c);return 0;}	/* parse failure. ep is set. */
 
