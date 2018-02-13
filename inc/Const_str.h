@@ -3,5 +3,6 @@
 
 #define MSG_ID "msg_id"
 #define CLIENT_ID "client_id"
+#define PEER_IO "peer_io"
 
 #endif

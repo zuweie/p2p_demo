@@ -3,7 +3,7 @@ lib_dir     := $(app_dir)/../lib
 inc_dir     := $(app_dir)/../inc
 src_dir     := $(app_dir)/../src
 
-src         := _endpoint.c _logging.c _msghandler.c _peer_manager.c cJSON.c 
+src         := _endpoint.c _logging.c _msghandler.c _peer_manager.c _msg.c cJSON.c 
 client_src  := $(addprefix $(src_dir)/, $(src))
 client_src  += client.c 
 

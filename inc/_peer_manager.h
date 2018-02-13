@@ -11,5 +11,6 @@ extern int update_peer (const char* id, Endpoint* io);
 extern Peer* find_peer(char* id);
 extern int delete_peer(char* id);
 extern void clean_peer_list();
-extern void all_peer(Peer**);
+extern int get_all_peer(Peer**);
+extern int peer_size();
 #endif

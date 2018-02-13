@@ -28,7 +28,8 @@ extern int init_mhmap (Mhmap* map)
 extern int add_handler (Mhmap* map, int msg,  Handler handler) 
 {
     log_info("add_handler");
-    MsgHandler* mh = (MsgHandler*)malloc(sizeof(MsgHandler));
+    size_t mh_size = sizeof(MsgHandler);
+    MsgHandler* mh = (MsgHandler*)malloc(mh_size);
     mh->msg = msg;
     mh->handler = handler;
     

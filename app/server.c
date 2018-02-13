@@ -13,8 +13,10 @@
 #define RECV_BUFFSIZE 1024
 
 static RBTree g_msg_handler_mapping;
+static int g_socketfd;
 static int process_udp (Endpoint* endpoint, const char * buf) 
 {
+	log_info(buf);
 	cJSON* root = cJSON_Parse(buf);
 	if (!root) return -1;
 	cJSON* msg_id = cJSON_GetObjectItem(root, MSG_ID);
@@ -63,25 +65,25 @@ static int on_beating (Endpoint* from, void * params)
 static int peer_list (Endpoint* from, void * params) 
 {
 	// 获取所有的 peer
-	int peer_size = peer_size();
+	int peers_size = peer_size();
 	int i;
-	//Peer *peer[peer_isze];
-	Peer** peer = (Peer**)malloc(peer_size * sizeof(Peer*));
-	all_peer(peer);
+	Peer *peer[peers_size];
+	get_all_peer(peer);
 
 	cJSON * array = cJSON_CreateArray();
-	for (i=0; i<peer_size; ++i) {
+	for (i=0; i<peers_size; ++i) {
 		cJSON * jpeer = cJSON_CreateObject();
-		cJSON_AddStringToObject(jpeer, CLIENT_ID, *peer[i]->id);
-		cJSON_AddItemToArray(jpeer);
+		cJSON_AddStringToObject(jpeer, CLIENT_ID, peer[i]->id);
+		cJSON_AddStringToObject(jpeer, PEER_IO, ep_tostring(&peer[i]->io));
+		cJSON_AddItemToArray(array, jpeer);
 	}
 	
-	// 
-}
+	send_udp_msg(g_socketfd, from, cJSON_Print(array));
 
-static int send_udp_msg(Endpoint* to, const char* msg) 
-{
-	
+	//free(peer);
+	cJSON_Delete(array);
+
+	// 
 }
 
 int main(int argc, char** argv) 
@@ -95,20 +97,21 @@ int main(int argc, char** argv)
 	init_mhmap(&g_msg_handler_mapping);
 	add_handler(&g_msg_handler_mapping, EMSG_BEATING, &on_beating);
 	add_handler(&g_msg_handler_mapping, EMSG_PEERLIST, &peer_list);
+	log_info("add_handler done");
 	/* regist msg handler */
 
 	/* init peer list */
 	init_peerlist();
-
+	log_info("init_peerlist\n");
 	/* init the socktet */
 	ep_frompair(&server, host, port);
-	int socketfd = socket(AF_INET, SOCK_DGRAM,0);
-	if (socketfd == -1 ) {
+	g_socketfd= socket(AF_INET, SOCK_DGRAM,0);
+	if (g_socketfd == -1 ) {
 		perror("sockt");
 		exit(EXIT_FAILURE);
 	}
 
-	ret = bind(socketfd, (const struct sockaddr* ) &server, sizeof(server));
+	ret = bind(g_socketfd, (const struct sockaddr* ) &server, sizeof(server));
 	if (ret == -1){
 		perror("bind");
 		exit(EXIT_FAILURE);
@@ -116,5 +119,5 @@ int main(int argc, char** argv)
 	printf("server listening on port %d ...\n", port);
 
 	// 接受信息。
-	udp_receive_loop(socketfd);
+	udp_receive_loop(g_socketfd);
 }

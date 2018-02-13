@@ -95,7 +95,6 @@ void cJSON_Delete(cJSON *c)
 /* Parse the input text to generate a number, and populate the result into item. */
 static const char *parse_number(cJSON *item,const char *num)
 {
-	log_info("parse_number\n");
 	double n=0,sign=1,scale=0;int subscale=0,signsubscale=1;
 
 	if (*num=='-') sign=-1,num++;	/* Has sign? */
@@ -323,15 +322,11 @@ static const char *skip(const char *in) {while (in && *in && (unsigned char)*in<
 /* Parse an object - create a new root, and populate. */
 cJSON *cJSON_ParseWithOpts(const char *value,const char **return_parse_end,int require_null_terminated)
 {
-	log_info("cJSON_ParseWithOpts1\n");
 	const char *end=0;
-	log_info("cJSON_ParseWithOpts2\n");
 	cJSON *c=cJSON_New_Item();
-	log_info("cJSON_ParseWithOpts3\n");
 	ep=0;
 	if (!c) return 0;       /* memory fail */
 
-	log_info("cJSON_ParseWithOpts4\n");
 	end=parse_value(c,skip(value));
 	if (!end)	{cJSON_Delete(c);return 0;}	/* parse failure. ep is set. */
 

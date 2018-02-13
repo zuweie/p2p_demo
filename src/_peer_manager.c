@@ -76,17 +76,17 @@ extern void clean_peer_list()
     dlist_remove_all(&g_peer_list, peer_clean);
 }
 
-extern int all_peer(Peer **peers) 
+extern int get_all_peer(Peer **peers) 
 {
     ListNode * pf = LIST_FIRST(&g_peer_list); 
     int i=0;
     for (;pf != LIST_TAIL(&g_peer_list); pf = pf->next, ++i){
-        *peers[i] = (Peer*)(pf->_entity._data.pointer);
+        peers[i] = (Peer*)(pf->_entity._data.pointer);
     }
     return 0;
 }
 
-extern size_t peer_size() 
+extern int peer_size()
 {
-    return g_peer_list.size;
+    return (int)g_peer_list.size;
 }

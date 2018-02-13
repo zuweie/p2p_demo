@@ -19,7 +19,6 @@ static RBTree g_msg_handler_mapping;
 void* keepalive_loop();
 void* receive_loop();
 void* console_loop();
-void send_udp_msg(Endpoint, const char * msg, size_t msg_len);
 void send_beating_msg();
 void send_query_peerlist_msg();
 void process_msg(Endpoint* ep, const char * buf);
@@ -41,8 +40,8 @@ int main (int argc, char** argv)
 
     /* 1 init socket*/
     g_clientfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (g_socketfd == -1){
-        close(g_socketfd);
+    if (g_clientfd == -1){
+        close(g_clientfd);
         fprintf(stderr, "socket faild");
         exit(EXIT_FAILURE);
     }
@@ -50,13 +49,27 @@ int main (int argc, char** argv)
     init_mhmap(&g_msg_handler_mapping);
     add_handler(&g_msg_handler_mapping, EMSG_ONPEERLIST, &on_peerlist);
 
-    pthread_t keepalive_pid;
+    pthread_t keepalive_pid, console_pid, receive_pid;
     int ret = pthread_create(&keepalive_pid, NULL, &keepalive_loop, NULL);
     if (ret != 0) {
         perror("keepalive");
         goto clean;
     }
+
+    ret = pthread_create(&console_pid, NULL, &console_loop, NULL);
+    if (ret != 0) {
+        perror("console");
+        goto clean;
+    }
+    
+    ret = pthread_create(&receive_pid, NULL, &receive_loop, NULL);
+    if (ret != 0) {
+        perror("receive");
+        goto clean;
+    }
     pthread_join(keepalive_pid, NULL);
+    pthread_join(console_pid, NULL);
+    pthread_join(receive_pid, NULL);
 clean:
     return EXIT_FAILURE;
 }
@@ -65,7 +78,7 @@ void* keepalive_loop() {
 
     for(;;){
         sleep(6);
-        log_info("send a message to server\n");
+        //log_info("send a message to server\n");
         send_beating_msg();
     }
 
@@ -75,13 +88,13 @@ void* keepalive_loop() {
 void* receive_loop() 
 {
     Endpoint peer;
-    socketlen_t addrlen;
+    socklen_t addrlen;
     char buf[PEER_RECV_BUF];
     fd_set readfds;
-    int maxfds = g_clientd + 1;
+    int maxfds = g_clientfd + 1;
     struct timeval timeout;
 
-    while(true) {
+    while(1) {
         FD_ZERO(&readfds);
         FD_SET(g_clientfd, &readfds);
         timeout.tv_sec = 1;
@@ -121,7 +134,7 @@ void* console_loop()
     char *line = NULL;
     size_t len;
     ssize_t read;
-    while (fprintf(stdout, ">>> ") && (read == getline(&line, &len, stdin)) != -1) {
+    while (fprintf(stdout, ">>> ") && (read = getline(&line, &len, stdin)) != -1) {
         if (read == 1) continue;
         char * cmd = strtok(line, " ");
         if (strncmp(cmd, "peerlist", 4) == 0) {
@@ -133,28 +146,22 @@ void* console_loop()
     return NULL;
 }
 
-void send_udp_msg(Endpoint *to, const char * msg, size_t msg_len) {
-    char msg_buff[MSGBUF_SIZE];
-    memset(msg_buff, 0, MSGBUF_SIZE);
-    snprintf(msg_buff, msg_len, msg);
-    sendto(g_clientfd, msg_buff, MSGBUF_SIZE, MSG_DONTWAIT, to, sizeof(Endpoint));
-}
 
 void send_beating_msg () {
     cJSON* beating_msg = cJSON_CreateObject();
     cJSON_AddNumberToObject(beating_msg, MSG_ID, EMSG_BEATING);
     cJSON_AddStringToObject(beating_msg, CLIENT_ID, "Joe Wei");
-    cJSON_AddNumberToObject(beating_msg, "count", ++i);
+    //cJSON_AddNumberToObject(beating_msg, "count", ++i);
     char * msg = cJSON_Print(beating_msg);
-    send_udp_msg(&g_server, msg, strlen(msg));
-    cJSON_Delete(beat_msg);
+    send_udp_msg(g_clientfd, &g_server, msg);
+    cJSON_Delete(beating_msg);
 }
 
 void send_query_peerlist_msg () {
     cJSON* peerlist_msg = cJSON_CreateObject();
     cJSON_AddNumberToObject(peerlist_msg, MSG_ID, EMSG_PEERLIST);
     char * msg = cJSON_Print(peerlist_msg);
-    send_udp_msg(&g_server, msg, strlen(msg));
+    send_udp_msg(g_clientfd, &g_server, msg);
     cJSON_Delete(peerlist_msg);
 }
 
