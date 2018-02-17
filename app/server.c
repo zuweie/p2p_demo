@@ -55,7 +55,7 @@ static void udp_receive_loop(int listen_socket) {
 static int on_beating (Endpoint* from, void * params) 
 {	
 	cJSON* root = (cJSON*)params;
-	cJSON* client = cJSON_GetObjectItem(root, CLIENT_ID);
+	cJSON* client = cJSON_GetObjectItem(root, PEER_ID);
 	
 	update_peer(client->valuestring, from);
 	// insert or update the client
@@ -70,19 +70,22 @@ static int peer_list (Endpoint* from, void * params)
 	Peer *peer[peers_size];
 	get_all_peer(peer);
 
+	cJSON * root  = cJSON_CreateObject();
+	cJSON_AddNumberToObject(root, MSG_ID, EMSG_ONPEERLIST);
+
 	cJSON * array = cJSON_CreateArray();
 	for (i=0; i<peers_size; ++i) {
 		cJSON * jpeer = cJSON_CreateObject();
-		cJSON_AddStringToObject(jpeer, CLIENT_ID, peer[i]->id);
+		cJSON_AddStringToObject(jpeer, PEER_ID, peer[i]->id);
 		cJSON_AddStringToObject(jpeer, PEER_IO, ep_tostring(&peer[i]->io));
 		cJSON_AddItemToArray(array, jpeer);
 	}
-	
-	send_udp_msg(g_socketfd, from, cJSON_Print(array));
+	cJSON_AddItemToObject(root, PEER_LIST, array);
+
+	send_udp_msg(g_socketfd, from, cJSON_Print(root));
 
 	//free(peer);
-	cJSON_Delete(array);
-
+	cJSON_Delete(root);
 	// 
 }
 

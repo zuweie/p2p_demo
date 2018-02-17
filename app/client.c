@@ -7,6 +7,7 @@
 #include "_msg.h"
 #include "_msghandler.h"
 #include "Const_str.h"
+#include "_peer_manager.h"
 
 #define MSGBUF_SIZE 129
 #define PEER_RECV_BUF 1024
@@ -14,6 +15,7 @@
 static int g_clientfd;
 static Endpoint g_server;
 static RBTree g_msg_handler_mapping;
+static g_mode;
 
 // 此函数不断给服务器发送心跳包
 void* keepalive_loop();
@@ -21,11 +23,27 @@ void* receive_loop();
 void* console_loop();
 void send_beating_msg();
 void send_query_peerlist_msg();
-void process_msg(Endpoint* ep, const char * buf);
+void process_udp(Endpoint* ep, const char * buf);
 
 static int on_peerlist (Endpoint* ep, void * params) 
 {
-    
+    cJSON* root = (cJSON*) params;
+    cJSON* peer_array = cJSON_GetObjectItem(root, PEER_LIST);
+    int size = cJSON_GetArraySize(peer_array);
+    int i;
+    for (i=0; i<size; ++i ) {
+        cJSON* item = cJSON_GetArrayItem(peer_array, i);
+        cJSON* peer_id = cJSON_GetObjectItem(item, PEER_ID);
+        cJSON* peer_io = cJSON_GetObjectItem(item, PEER_IO);
+        //log_info("peer : %s / %s \n", peer_id->valuestring, peer_io->valuestring);
+        Endpoint peer = ep_fromstring(peer_io);
+        update_peer(peer_id, &peer);
+    }
+}
+
+static int on_chat(Endpoint* ep, void * params )
+{
+
 }
  
 
@@ -48,7 +66,11 @@ int main (int argc, char** argv)
     /* 2 init handler mapping*/
     init_mhmap(&g_msg_handler_mapping);
     add_handler(&g_msg_handler_mapping, EMSG_ONPEERLIST, &on_peerlist);
+    
+    /* 3 init peer manager*/
+    init_peerlist();
 
+     
     pthread_t keepalive_pid, console_pid, receive_pid;
     int ret = pthread_create(&keepalive_pid, NULL, &keepalive_loop, NULL);
     if (ret != 0) {
@@ -68,8 +90,8 @@ int main (int argc, char** argv)
         goto clean;
     }
     pthread_join(keepalive_pid, NULL);
-    pthread_join(console_pid, NULL);
-    pthread_join(receive_pid, NULL);
+    pthread_join(console_pid,   NULL);
+    pthread_join(receive_pid,   NULL);
 clean:
     return EXIT_FAILURE;
 }
@@ -122,7 +144,8 @@ void* receive_loop()
                 log_info("EOF form %s ", ep_tostring(&peer));
                 continue;
             }
-            log_info("%s", buf);
+            //log_info("%s", buf);
+            process_udp (&peer, buf);
         }
     }
 
@@ -137,9 +160,16 @@ void* console_loop()
     while (fprintf(stdout, ">>> ") && (read = getline(&line, &len, stdin)) != -1) {
         if (read == 1) continue;
         char * cmd = strtok(line, " ");
-        if (strncmp(cmd, "peerlist", 4) == 0) {
+        if (strncmp(cmd, "peerlist", 8) == 0) {
             // query peer list
             send_query_peerlist_msg();
+        }else if (strncmp(cmd, "chatto", 6) == 0) {
+            char * peer_id = strtok(NULL, " ");
+            Peer peer = find_peer(peer_id);
+            if (peer) {
+                char *msg = strtok(NULL, " ");
+
+            }
         }
 
     }
@@ -150,7 +180,7 @@ void* console_loop()
 void send_beating_msg () {
     cJSON* beating_msg = cJSON_CreateObject();
     cJSON_AddNumberToObject(beating_msg, MSG_ID, EMSG_BEATING);
-    cJSON_AddStringToObject(beating_msg, CLIENT_ID, "Joe Wei");
+    cJSON_AddStringToObject(beating_msg, PEER_ID, "Joe Wei");
     //cJSON_AddNumberToObject(beating_msg, "count", ++i);
     char * msg = cJSON_Print(beating_msg);
     send_udp_msg(g_clientfd, &g_server, msg);
@@ -163,6 +193,22 @@ void send_query_peerlist_msg () {
     char * msg = cJSON_Print(peerlist_msg);
     send_udp_msg(g_clientfd, &g_server, msg);
     cJSON_Delete(peerlist_msg);
+}
+
+void chat_to_peer (Endpoint* to, const char* msg) {
+    cJSON* root = cJSON_CreateObject();
+    cJSON_AddNumberToObject(root, MSG_ID, EMSG_CHAT);
+    cJSON_AddStringToObject(root, CHAT_CONTENT, msg);
+    char * msg = cJSON_P
+    send_udp_msg(g_clientfd, to, )
+}
+void process_udp(Endpoint* ep, const char * buf) {
+    cJSON* root = cJSON_Parse(buf);
+    cJSON* msg  = cJSON_GetObjectItem(root, MSG_ID);
+    int msg_id = msg->valueint;
+    Handler handler = find_handler(&g_msg_handler_mapping, EMSG_ONPEERLIST);
+    handler && handler(ep, root);
+    cJSON_Delete(root);
 }
 
 
