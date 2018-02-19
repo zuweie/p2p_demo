@@ -15,7 +15,7 @@
 static int g_clientfd;
 static Endpoint g_server;
 static RBTree g_msg_handler_mapping;
-static g_mode;
+static char _id[128];
 
 // 此函数不断给服务器发送心跳包
 void* keepalive_loop();
@@ -24,6 +24,7 @@ void* console_loop();
 void send_beating_msg();
 void send_query_peerlist_msg();
 void process_udp(Endpoint* ep, const char * buf);
+void chat_to_peer (Endpoint* to, const char* msg);
 
 static int on_peerlist (Endpoint* ep, void * params) 
 {
@@ -36,25 +37,40 @@ static int on_peerlist (Endpoint* ep, void * params)
         cJSON* peer_id = cJSON_GetObjectItem(item, PEER_ID);
         cJSON* peer_io = cJSON_GetObjectItem(item, PEER_IO);
         //log_info("peer : %s / %s \n", peer_id->valuestring, peer_io->valuestring);
-        Endpoint peer = ep_fromstring(peer_io);
-        update_peer(peer_id, &peer);
+        Endpoint peer;
+        ep_fromstring(&peer, peer_io->valuestring);
+        update_peer(peer_id->valuestring, &peer);
     }
+    print_all_peer();
 }
 
 static int on_chat(Endpoint* ep, void * params )
 {
+    cJSON* root = (cJSON*) params;
+    cJSON* chat = cJSON_GetObjectItem(root, CHAT_CONTENT);
+    char * msg = chat->valuestring;
+    log_info("you get a msg (from %s) : %s \n", ep_tostring(ep), msg);
 
 }
  
 
 int main (int argc, char** argv) 
 {
+    
     log_setlevel(INFO);
-    if (argc != 2) {
-        fprintf(stderr, "Usage: %s server:port\n", argv[0]);
+
+    if (argc != 3) {
+        fprintf(stderr, "Usage: %s peer_id server:port\n", argv[0]);
         exit(EXIT_FAILURE);
     }
-    ep_fromstring(&g_server, argv[1]);
+
+    memset(_id, 0, 128);
+
+    strncpy(_id, argv[1], 128);
+
+    ep_fromstring(&g_server, argv[2]);
+
+    log_info("_id : %s, host : %s ", _id, ep_tostring(&g_server));
 
     /* 1 init socket*/
     g_clientfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -66,7 +82,8 @@ int main (int argc, char** argv)
     /* 2 init handler mapping*/
     init_mhmap(&g_msg_handler_mapping);
     add_handler(&g_msg_handler_mapping, EMSG_ONPEERLIST, &on_peerlist);
-    
+    add_handler(&g_msg_handler_mapping, EMSG_ONCHAT, &on_chat);
+
     /* 3 init peer manager*/
     init_peerlist();
 
@@ -165,10 +182,13 @@ void* console_loop()
             send_query_peerlist_msg();
         }else if (strncmp(cmd, "chatto", 6) == 0) {
             char * peer_id = strtok(NULL, " ");
-            Peer peer = find_peer(peer_id);
+            Peer* peer = find_peer(peer_id);
             if (peer) {
                 char *msg = strtok(NULL, " ");
-
+                // TODO : send to msg to peer;
+                chat_to_peer(&(peer->io), msg);
+            }else{
+                log_info(" Can`t find %s in your contacts!\n may be you should be update you contracts by type peerlist\n", peer_id);
             }
         }
 
@@ -180,7 +200,7 @@ void* console_loop()
 void send_beating_msg () {
     cJSON* beating_msg = cJSON_CreateObject();
     cJSON_AddNumberToObject(beating_msg, MSG_ID, EMSG_BEATING);
-    cJSON_AddStringToObject(beating_msg, PEER_ID, "Joe Wei");
+    cJSON_AddStringToObject(beating_msg, PEER_ID, _id);
     //cJSON_AddNumberToObject(beating_msg, "count", ++i);
     char * msg = cJSON_Print(beating_msg);
     send_udp_msg(g_clientfd, &g_server, msg);
@@ -195,18 +215,19 @@ void send_query_peerlist_msg () {
     cJSON_Delete(peerlist_msg);
 }
 
-void chat_to_peer (Endpoint* to, const char* msg) {
+void chat_to_peer (Endpoint* to, const char* content) {
     cJSON* root = cJSON_CreateObject();
-    cJSON_AddNumberToObject(root, MSG_ID, EMSG_CHAT);
-    cJSON_AddStringToObject(root, CHAT_CONTENT, msg);
-    char * msg = cJSON_P
-    send_udp_msg(g_clientfd, to, )
+    cJSON_AddNumberToObject(root, MSG_ID, EMSG_ONCHAT);
+    cJSON_AddStringToObject(root, CHAT_CONTENT, content);
+    char * msg = cJSON_Print(root);
+    send_udp_msg(g_clientfd, to, msg);
+    cJSON_Delete(root);
 }
 void process_udp(Endpoint* ep, const char * buf) {
     cJSON* root = cJSON_Parse(buf);
     cJSON* msg  = cJSON_GetObjectItem(root, MSG_ID);
     int msg_id = msg->valueint;
-    Handler handler = find_handler(&g_msg_handler_mapping, EMSG_ONPEERLIST);
+    Handler handler = find_handler(&g_msg_handler_mapping, msg_id);
     handler && handler(ep, root);
     cJSON_Delete(root);
 }

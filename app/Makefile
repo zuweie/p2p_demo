@@ -10,7 +10,7 @@ client_src  += client.c
 server_src  := $(addprefix $(src_dir)/, $(src))
 server_src  += server.c 
 
-cflags      := -g -std=c99 -Wall -I$(inc_dir) -L$(lib_dir) -lalg -Wno-implicit-function-declaration 
+cflags      := -g -std=c99 -Wall -I$(inc_dir) -L$(lib_dir) -lalg -lm -Wno-implicit-function-declaration 
 targets     := server client
 
 all: $(targets)
