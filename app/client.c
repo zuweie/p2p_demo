@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <sys/select.h>
 #include "_endpoint.h"
 #include "_logging.h"
 #include "cJSON.h"
