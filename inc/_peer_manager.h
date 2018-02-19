@@ -13,4 +13,5 @@ extern int delete_peer(char* id);
 extern void clean_peer_list();
 extern int get_all_peer(Peer**);
 extern int peer_size();
+extern int print_all_peer();
 #endif

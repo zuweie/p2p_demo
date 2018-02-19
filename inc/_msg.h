@@ -7,7 +7,7 @@ typedef enum _Msg {
     EMSG_BEATING,
     EMSG_PEERLIST,
     EMSG_ONPEERLIST,
-    EMSG_CHAT
+    EMSG_ONCHAT
 }Msg;
 
 extern int send_udp_msg(int socketfd, Endpoint *to, const char * msg);

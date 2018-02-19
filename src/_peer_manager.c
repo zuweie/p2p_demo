@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include "_peer_manager.h"
 #include "_d_linked_list.h"
 #include "_peer.h"
@@ -84,6 +85,15 @@ extern int get_all_peer(Peer **peers)
         peers[i] = (Peer*)(pf->_entity._data.pointer);
     }
     return 0;
+}
+
+extern int print_all_peer() 
+{
+    ListNode * pf = LIST_FIRST(&g_peer_list);
+    for (; pf != LIST_TAIL(&g_peer_list); pf = pf->next){
+        Peer* peer = (Peer*) (pf->_entity._data.pointer);
+        printf("id:%s, io:%s\n", peer->id, ep_tostring(&(peer->io)));
+    }
 }
 
 extern int peer_size()

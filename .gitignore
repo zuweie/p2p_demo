@@ -4,3 +4,4 @@ app/server
 app/server.dSYM/
 app/client.dSYM/
 ref_alg.sh
+lib/
