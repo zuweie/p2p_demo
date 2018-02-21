@@ -94,6 +94,7 @@ extern int print_all_peer()
         Peer* peer = (Peer*) (pf->_entity._data.pointer);
         printf("id:%s, io:%s\n", peer->id, ep_tostring(&(peer->io)));
     }
+    printf("\n");
 }
 
 extern int peer_size()

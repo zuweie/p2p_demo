@@ -172,12 +172,13 @@ void* receive_loop()
 
 void* console_loop() 
 {
-    char *line = NULL;
-    size_t len;
+    char line[1023];
+    size_t len = 1024;
     ssize_t read;
-    while (fprintf(stdout, ">>> ") && (read = getline(&line, &len, stdin)) != -1) {
+    while (fprintf(stdout, ">>> ") && (read = fgets(&line, &len, stdin)) != -1) {
         if (read == 1) continue;
         char * cmd = strtok(line, " ");
+        
         if (strncmp(cmd, "peerlist", 8) == 0) {
             // query peer list
             send_query_peerlist_msg();
