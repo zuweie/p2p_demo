@@ -53,7 +53,8 @@ static int on_chat(Endpoint* ep, void * params )
     log_info("you get a msg (from %s) : %s \n", ep_tostring(ep), msg);
 
 }
- 
+
+
 
 int main (int argc, char** argv) 
 {
@@ -90,12 +91,14 @@ int main (int argc, char** argv)
 
      
     pthread_t keepalive_pid, console_pid, receive_pid;
+    int ret;
+    /*
     int ret = pthread_create(&keepalive_pid, NULL, &keepalive_loop, NULL);
     if (ret != 0) {
         perror("keepalive");
         goto clean;
     }
-
+    */
     ret = pthread_create(&console_pid, NULL, &console_loop, NULL);
     if (ret != 0) {
         perror("console");
@@ -107,7 +110,7 @@ int main (int argc, char** argv)
         perror("receive");
         goto clean;
     }
-    pthread_join(keepalive_pid, NULL);
+    //pthread_join(keepalive_pid, NULL);
     pthread_join(console_pid,   NULL);
     pthread_join(receive_pid,   NULL);
 clean:
@@ -115,12 +118,14 @@ clean:
 }
 
 void* keepalive_loop() {
-
+    /*
     for(;;){
         sleep(6);
         //log_info("send a message to server\n");
         send_beating_msg();
     }
+    */
+    send_beating_msg();
 
     return NULL;
 }
@@ -134,7 +139,7 @@ void* receive_loop()
     int maxfds = g_clientfd + 1;
     struct timeval timeout;
 
-    while(1) {
+    for(;;) {
         FD_ZERO(&readfds);
         FD_SET(g_clientfd, &readfds);
         timeout.tv_sec = 1;
@@ -192,6 +197,8 @@ void* console_loop()
             }else{
                 log_info(" Can`t find %s in your contacts!\n may be you should be update you contracts by type peerlist\n", peer_id);
             }
+        }else if (strncmp(cmd, "keeplive", 8) ==0 ){
+            keepalive_loop();
         }
 
     }
@@ -223,9 +230,11 @@ void chat_to_peer (Endpoint* to, const char* content) {
     cJSON_AddStringToObject(root, CHAT_CONTENT, content);
     char * msg = cJSON_Print(root);
     send_udp_msg(g_clientfd, to, msg);
+    log_info("to_ep : %s\nto_msg:%s\n", ep_tostring(to), msg);
     cJSON_Delete(root);
 }
 void process_udp(Endpoint* ep, const char * buf) {
+    log_info("udp:%s\n", buf);
     cJSON* root = cJSON_Parse(buf);
     cJSON* msg  = cJSON_GetObjectItem(root, MSG_ID);
     int msg_id = msg->valueint;

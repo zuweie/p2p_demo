@@ -9,7 +9,7 @@ char stringBuf[STRBUF_SIZE];
 
 extern const char* ep_tostring(Endpoint* ep) 
 {
-    snprintf(stringBuf, STRBUF_SIZE, "%s:%d", inet_ntoa(ep->sin_addr), ntohs(ep->sin_port));
+    snprintf(stringBuf, STRBUF_SIZE, "%s:%d", inet_ntoa(ep->sin_addr), ep->sin_port/*ntohs(ep->sin_port)*/);
     return stringBuf;
 }
 
