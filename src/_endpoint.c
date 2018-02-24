@@ -9,7 +9,7 @@ char stringBuf[STRBUF_SIZE];
 
 extern const char* ep_tostring(Endpoint* ep) 
 {
-    snprintf(stringBuf, STRBUF_SIZE, "%s:%d", inet_ntoa(ep->sin_addr), ep->sin_port/*ntohs(ep->sin_port)*/);
+    snprintf(stringBuf, STRBUF_SIZE, "%s:%d", inet_ntoa(ep->sin_addr), ntohs(ep->sin_port));
     return stringBuf;
 }
 
@@ -18,7 +18,7 @@ extern int ep_frompair(Endpoint* ep, const char* host, short port)
     memset(ep, 0, sizeof(Endpoint));
     ep->sin_family = AF_INET;
     ep->sin_addr.s_addr = inet_addr(host);
-    ep->sin_port = port;
+    ep->sin_port = htons(port);
     return 0;
 }
 extern int ep_fromstring(Endpoint* ep, const char* hostport)
